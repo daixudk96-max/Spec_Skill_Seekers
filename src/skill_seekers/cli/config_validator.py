@@ -25,7 +25,7 @@ class ConfigValidator:
     """
 
     # Valid source types
-    VALID_SOURCE_TYPES = {'documentation', 'github', 'pdf'}
+    VALID_SOURCE_TYPES = {'documentation', 'github', 'pdf', 'transcript'}
 
     # Valid merge modes
     VALID_MERGE_MODES = {'rule-based', 'claude-enhanced'}
@@ -139,6 +139,8 @@ class ConfigValidator:
             self._validate_github_source(source, index)
         elif source_type == 'pdf':
             self._validate_pdf_source(source, index)
+        elif source_type == 'transcript':
+            self._validate_transcript_source(source, index)
 
     def _validate_documentation_source(self, source: Dict[str, Any], index: int):
         """Validate documentation source configuration."""
@@ -187,6 +189,41 @@ class ConfigValidator:
         pdf_path = source['path']
         if not Path(pdf_path).exists():
             logger.warning(f"Source {index} (pdf): File not found: {pdf_path}")
+
+    def _validate_transcript_source(self, source: Dict[str, Any], index: int):
+        """Validate transcript source configuration."""
+        # 必须有 path、paths 或 directory 中的一个
+        has_path = 'path' in source
+        has_paths = 'paths' in source
+        has_directory = 'directory' in source
+        
+        if not (has_path or has_paths or has_directory):
+            raise ValueError(
+                f"Source {index} (transcript): Missing required field. "
+                f"Must specify 'path', 'paths', or 'directory'"
+            )
+        
+        # 验证单个文件路径
+        if has_path:
+            transcript_path = source['path']
+            if not Path(transcript_path).exists():
+                logger.warning(f"Source {index} (transcript): File not found: {transcript_path}")
+            # 检查文件扩展名
+            suffix = Path(transcript_path).suffix.lower()
+            valid_extensions = {'.srt', '.vtt', '.txt', '.md', '.docx'}
+            if suffix not in valid_extensions:
+                logger.warning(
+                    f"Source {index} (transcript): Unusual extension '{suffix}'. "
+                    f"Expected: {valid_extensions}"
+                )
+        
+        # 验证目录路径
+        if has_directory:
+            dir_path = source['directory']
+            if not Path(dir_path).exists():
+                logger.warning(f"Source {index} (transcript): Directory not found: {dir_path}")
+            elif not Path(dir_path).is_dir():
+                raise ValueError(f"Source {index} (transcript): '{dir_path}' is not a directory")
 
     def _validate_legacy(self) -> bool:
         """

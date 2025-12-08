@@ -2,7 +2,7 @@
 """
 Unified Multi-Source Scraper
 
-Orchestrates scraping from multiple sources (documentation, GitHub, PDF),
+Orchestrates scraping from multiple sources (documentation, GitHub, PDF, transcript),
 detects conflicts, merges intelligently, and builds unified skills.
 
 This is the main entry point for unified config workflow.
@@ -108,6 +108,8 @@ class UnifiedScraper:
                     self._scrape_github(source)
                 elif source_type == 'pdf':
                     self._scrape_pdf(source)
+                elif source_type == 'transcript':
+                    self._scrape_transcript(source)
                 else:
                     logger.warning(f"Unknown source type: {source_type}")
             except Exception as e:
@@ -243,6 +245,42 @@ class UnifiedScraper:
         }
 
         logger.info(f"✅ PDF: {len(pdf_data.get('pages', []))} pages extracted")
+
+    def _scrape_transcript(self, source: Dict[str, Any]):
+        """Scrape transcript files."""
+        sys.path.insert(0, str(Path(__file__).parent))
+
+        try:
+            from transcript_scraper import TranscriptScraper
+        except ImportError:
+            logger.error("transcript_scraper.py not found")
+            return
+
+        # Create config for transcript scraper
+        transcript_config = {
+            'name': f"{self.name}_transcript",
+            'path': source.get('path'),
+            'paths': source.get('paths', []),
+            'directory': source.get('directory'),
+            'patterns': source.get('patterns', ['*.srt', '*.vtt', '*.txt'])
+        }
+
+        # Scrape
+        logger.info(f"Scraping transcript(s)...")
+        scraper = TranscriptScraper(transcript_config)
+        transcript_data = scraper.scrape()
+
+        # Save data
+        transcript_data_file = os.path.join(self.data_dir, 'transcript_data.json')
+        with open(transcript_data_file, 'w', encoding='utf-8') as f:
+            json.dump(transcript_data, f, indent=2, ensure_ascii=False)
+
+        self.scraped_data['transcript'] = {
+            'data': transcript_data,
+            'data_file': transcript_data_file
+        }
+
+        logger.info(f"✅ Transcript: {transcript_data.get('total_lessons', 0)} lessons extracted")
 
     def detect_conflicts(self) -> List:
         """

@@ -1,0 +1,41 @@
+1
+00:00:00,000 --> 00:00:05,000
+Welcome to this Python programming tutorial.
+
+2
+00:00:05,500 --> 00:00:12,000
+Today we will learn about lists and dictionaries,
+two fundamental data structures in Python.
+
+3
+00:00:12,500 --> 00:00:20,000
+A list is an ordered, mutable collection.
+You create it using square brackets.
+
+4
+00:00:20,500 --> 00:00:28,000
+For example: my_list = [1, 2, 3, "hello"]
+Lists can contain mixed types.
+
+5
+00:00:28,500 --> 00:00:38,000
+A dictionary stores key-value pairs.
+You create it using curly braces.
+For example: my_dict = {"name": "Alice", "age": 30}
+
+6
+00:00:38,500 --> 00:00:45,000
+Both lists and dictionaries are very useful
+for organizing and accessing data in Python.
+
+7
+00:00:45,500 --> 00:00:50,000
+Practice exercises:
+1. Create a list of your 5 favorite books.
+2. Create a dictionary with 3 friends and their ages.
+3. Try accessing elements using indexing.
+
+8
+00:00:50,500 --> 00:00:55,000
+Thank you for watching this lesson.
+See you in the next tutorial!

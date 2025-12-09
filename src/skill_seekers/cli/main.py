@@ -178,6 +178,8 @@ For more information: https://github.com/yusufkaraaslan/Skill_Seekers
     )
     apply_spec_parser.add_argument("spec_file", help="Path to spec file")
     apply_spec_parser.add_argument("--output-dir", help="Output directory (default: output/)")
+    apply_spec_parser.add_argument("--no-llm", action="store_true", 
+                                   help="Disable LLM content generation, use fallback extraction")
 
     # === reject-spec subcommand (NEW) ===
     reject_spec_parser = subparsers.add_parser(
@@ -370,6 +372,11 @@ def _handle_apply_spec(args) -> int:
     if spec.meta.status not in ("approved", "pending"):
         print(f"Warning: Spec status is '{spec.meta.status}', applying anyway...", file=sys.stderr)
     
+    # Determine LLM usage
+    use_llm = not getattr(args, 'no_llm', False)
+    if not use_llm:
+        print("ℹ️  LLM disabled, using fallback extraction mode")
+    
     # Create minimal config for builder
     config = {
         "name": spec.name,
@@ -381,6 +388,7 @@ def _handle_apply_spec(args) -> int:
         config=config,
         scraped_data={},
         skill_spec=spec,
+        use_llm=use_llm,
     )
     output_path = builder.build_from_spec()
     print(f"✅ Skill built: {output_path}")

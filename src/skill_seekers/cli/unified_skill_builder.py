@@ -20,6 +20,7 @@ from typing import Dict, List, Any, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from skill_seekers.core.skill_spec import SkillSpec
+    from skill_seekers.core.content_synthesizer import ContentSynthesizer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,7 +33,8 @@ class UnifiedSkillBuilder:
 
     def __init__(self, config: Dict, scraped_data: Dict,
                  merged_data: Optional[Dict] = None, conflicts: Optional[List] = None,
-                 skill_spec: Optional["SkillSpec"] = None):
+                 skill_spec: Optional["SkillSpec"] = None,
+                 use_llm: bool = True):
         """
         Initialize skill builder.
 
@@ -42,12 +44,15 @@ class UnifiedSkillBuilder:
             merged_data: Merged API data (if conflicts were resolved)
             conflicts: List of detected conflicts
             skill_spec: Optional SkillSpec to guide output generation
+            use_llm: Enable LLM content generation (requires ANTHROPIC_API_KEY)
         """
         self.config = config
         self.scraped_data = scraped_data
         self.merged_data = merged_data
         self.conflicts = conflicts or []
-        self.skill_spec = skill_spec  # NEW: SkillSpec for spec-driven generation
+        self.skill_spec = skill_spec
+        self.use_llm = use_llm
+        self.content_synthesizer: Optional["ContentSynthesizer"] = None
 
         self.name = config['name']
         self.description = config['description']
@@ -92,6 +97,18 @@ class UnifiedSkillBuilder:
             raise ValueError("SkillSpec is required for build_from_spec()")
         
         logger.info(f"Building spec-driven skill: {self.skill_spec.name}")
+        
+        # Initialize ContentSynthesizer if source_config available
+        if hasattr(self.skill_spec, 'source_config') and self.skill_spec.source_config:
+            from skill_seekers.core.content_synthesizer import ContentSynthesizer
+            self.content_synthesizer = ContentSynthesizer(
+                spec=self.skill_spec,
+                source_config=self.skill_spec.source_config,
+                use_llm=self.use_llm,
+            )
+            logger.info(f"ContentSynthesizer initialized (LLM: {self.content_synthesizer.use_llm})")
+        else:
+            logger.warning("No source_config in spec, using placeholder content")
         
         # Update skill_dir to match spec name
         self.skill_dir = f"output/{self.skill_spec.name}"
@@ -194,19 +211,21 @@ description: {spec.description[:1024]}
         logger.info("Created SKILL.md from spec")
 
     def _format_section_from_spec(self, section) -> str:
-        """Format a SectionSpec into markdown content."""
+        """Format a SectionSpec into markdown content with actual content."""
         content = f"{section.title}\n\n"
         
-        # Add purpose as a comment for content generation
-        if section.purpose:
-            content += f"*{section.purpose}*\n\n"
-        
-        # Expected content hints
-        if section.expected_content:
-            content += "Expected content:\n"
-            for item in section.expected_content:
-                content += f"- {item}\n"
-            content += "\n"
+        # Generate actual content via synthesizer if available
+        if self.content_synthesizer:
+            try:
+                generated_content = self.content_synthesizer.synthesize_section_content(section)
+                content += generated_content + "\n\n"
+            except Exception as e:
+                logger.error(f"ContentSynthesizer failed for '{section.title}': {e}")
+                # Fallback to placeholder
+                content += self._format_section_placeholder(section)
+        else:
+            # No synthesizer: use placeholder content
+            content += self._format_section_placeholder(section)
         
         # Note about priority
         if section.priority == "optional":
@@ -217,9 +236,21 @@ description: {spec.description[:1024]}
             content += self._format_section_from_spec(subsection)
         
         return content
+    
+    def _format_section_placeholder(self, section) -> str:
+        """Generate placeholder content for a section (legacy behavior)."""
+        placeholder = ""
+        if section.purpose:
+            placeholder += f"*{section.purpose}*\n\n"
+        if section.expected_content:
+            placeholder += "Expected content:\n"
+            for item in section.expected_content:
+                placeholder += f"- {item}\n"
+            placeholder += "\n"
+        return placeholder
 
     def _generate_references_from_spec(self):
-        """Generate reference files based on SkillSpec."""
+        """Generate reference files based on SkillSpec with actual content."""
         refs_dir = os.path.join(self.skill_dir, 'references')
         
         for ref_spec in self.skill_spec.references:
@@ -227,6 +258,14 @@ description: {spec.description[:1024]}
             
             # Create directory if filename contains path
             os.makedirs(os.path.dirname(ref_path) or refs_dir, exist_ok=True)
+            
+            # Try to generate content with synthesizer
+            generated_body: Optional[str] = None
+            if self.content_synthesizer:
+                try:
+                    generated_body = self.content_synthesizer.synthesize_reference_content(ref_spec)
+                except Exception as e:
+                    logger.error(f"ContentSynthesizer failed for reference '{ref_spec.filename}': {e}")
             
             with open(ref_path, 'w', encoding='utf-8') as f:
                 f.write(f"# {ref_spec.filename}\n\n")
@@ -238,7 +277,10 @@ description: {spec.description[:1024]}
                         f.write(f"- {source}\n")
                     f.write("\n")
                 
-                f.write("<!-- TODO: Populate with content from scraped data -->\n")
+                if generated_body:
+                    f.write(generated_body.rstrip() + "\n")
+                else:
+                    f.write("<!-- TODO: Populate with content from scraped data -->\n")
         
         logger.info(f"Created {len(self.skill_spec.references)} reference files")
 

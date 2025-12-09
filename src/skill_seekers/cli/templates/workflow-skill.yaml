@@ -1,0 +1,56 @@
+name: workflow-skill
+description: 工作流/元技能，教授如何创建或管理事物
+
+default_sections:
+  - title: "## About"
+    purpose: 介绍这个工作流技能的目标和价值
+    expected_content:
+      - 技能概述
+      - 适用场景
+      - 前置条件
+    priority: required
+  
+  - title: "## Core Principles"
+    purpose: 核心原则和指导思想
+    expected_content:
+      - 关键原则列表
+      - 设计理念
+    priority: required
+  
+  - title: "## Process"
+    purpose: 逐步骤的工作流程
+    priority: required
+    subsections:
+      - title: "### Step 1: Initialize"
+        purpose: 初始化和准备工作
+        priority: required
+      - title: "### Step 2: Configure"
+        purpose: 配置和设置
+        priority: required
+      - title: "### Step 3: Execute"
+        purpose: 执行主要任务
+        priority: required
+      - title: "### Step 4: Verify"
+        purpose: 验证和确认结果
+        priority: required
+
+default_references:
+  - filename: workflows.md
+    purpose: 详细的工作流程和条件逻辑
+    max_words: 10000
+  - filename: output-patterns.md
+    purpose: 输出模板和示例模式
+    max_words: 8000
+
+default_scripts:
+  - filename: init_skill.py
+    purpose: 初始化技能结构
+    language: python
+  - filename: package_skill.py
+    purpose: 打包技能为可分发格式
+    language: python
+
+default_assets: []
+
+scripts_expected: true
+assets_expected: false

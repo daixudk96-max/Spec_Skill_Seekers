@@ -1,0 +1,55 @@
+name: brand-enterprise
+description: 公司品牌、风格指南、企业规范
+
+default_sections:
+  - title: "## Overview"
+    purpose: 品牌概述、核心价值和定位
+    expected_content:
+      - 品牌故事
+      - 核心价值
+      - 品牌定位
+    priority: required
+  
+  - title: "## Guidelines"
+    purpose: 品牌使用准则
+    priority: required
+    subsections:
+      - title: "### Colors"
+        purpose: 主辅色、可用比例与禁用搭配
+        expected_content:
+          - 主色调
+          - 辅助色
+          - 使用规范
+        priority: required
+      - title: "### Typography"
+        purpose: 字体、字号、字重与场景建议
+        expected_content:
+          - 主字体
+          - 辅助字体
+          - 使用场景
+        priority: required
+  
+  - title: "## Features"
+    purpose: 品牌化的产品特性与交互要点
+    priority: optional
+  
+  - title: "## Technical Details"
+    purpose: 交付格式、文件约定与集成提示
+    priority: optional
+
+default_references: []
+
+default_scripts: []
+
+default_assets:
+  - filename: brand-style-guide.md
+    asset_type: template
+    source: brand-guidelines
+    copy_only: true
+  - filename: logo/
+    asset_type: asset-pack
+    source: design-system
+    copy_only: true
+
+scripts_expected: false
+assets_expected: true

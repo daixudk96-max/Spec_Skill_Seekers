@@ -25,7 +25,9 @@ Examples:
 """
 
 import sys
+import json
 import argparse
+from pathlib import Path
 from typing import List, Optional
 
 
@@ -86,6 +88,10 @@ For more information: https://github.com/yusufkaraaslan/Skill_Seekers
     scrape_parser.add_argument("--dry-run", action="store_true", help="Dry run mode")
     scrape_parser.add_argument("--async", dest="async_mode", action="store_true", help="Use async scraping")
     scrape_parser.add_argument("--workers", type=int, help="Number of async workers")
+    # NEW: spec-first workflow options
+    scrape_parser.add_argument("--spec-first", action="store_true", help="Enable spec-first workflow")
+    scrape_parser.add_argument("--template", choices=["technical-guide", "workflow-skill", "course-tutorial", "brand-enterprise", "tool-utility"], help="Template type for spec generation")
+    scrape_parser.add_argument("--auto-approve", action="store_true", help="Auto-approve spec without review")
 
     # === github subcommand ===
     github_parser = subparsers.add_parser(
@@ -155,6 +161,47 @@ For more information: https://github.com/yusufkaraaslan/Skill_Seekers
     )
     estimate_parser.add_argument("config", help="Config JSON file")
     estimate_parser.add_argument("--max-discovery", type=int, help="Max pages to discover")
+
+    # === show-spec subcommand (NEW) ===
+    show_spec_parser = subparsers.add_parser(
+        "show-spec",
+        help="Display a SkillSpec summary",
+        description="Display a SkillSpec file in human-readable markdown format"
+    )
+    show_spec_parser.add_argument("spec_file", help="Path to spec file (YAML or JSON)")
+
+    # === apply-spec subcommand (NEW) ===
+    apply_spec_parser = subparsers.add_parser(
+        "apply-spec",
+        help="Apply an approved SkillSpec",
+        description="Build skill outputs from an approved SkillSpec"
+    )
+    apply_spec_parser.add_argument("spec_file", help="Path to spec file")
+    apply_spec_parser.add_argument("--output-dir", help="Output directory (default: output/)")
+
+    # === reject-spec subcommand (NEW) ===
+    reject_spec_parser = subparsers.add_parser(
+        "reject-spec",
+        help="Reject a SkillSpec",
+        description="Reject a SkillSpec and generate re-scrape configuration"
+    )
+    reject_spec_parser.add_argument("spec_file", help="Path to spec file")
+    reject_spec_parser.add_argument("--reason", help="Rejection reason")
+    reject_spec_parser.add_argument("--add-sources", nargs="*", help="Additional sources to scrape")
+    reject_spec_parser.add_argument("--remove-sections", nargs="*", help="Sections to remove")
+    reject_spec_parser.add_argument("--add-sections", nargs="*", help="Sections to add")
+
+    # === templates subcommand (NEW) ===
+    templates_parser = subparsers.add_parser(
+        "templates",
+        help="Manage SkillSpec templates",
+        description="List and show available skill templates"
+    )
+    templates_subparsers = templates_parser.add_subparsers(dest="templates_command")
+    
+    templates_list_parser = templates_subparsers.add_parser("list", help="List all templates")
+    templates_show_parser = templates_subparsers.add_parser("show", help="Show template details")
+    templates_show_parser.add_argument("name", help="Template name")
 
     return parser
 
@@ -268,6 +315,18 @@ def main(argv: Optional[List[str]] = None) -> int:
                 sys.argv.extend(["--max-discovery", str(args.max_discovery)])
             return estimate_main() or 0
 
+        elif args.command == "show-spec":
+            return _handle_show_spec(args)
+
+        elif args.command == "apply-spec":
+            return _handle_apply_spec(args)
+
+        elif args.command == "reject-spec":
+            return _handle_reject_spec(args)
+
+        elif args.command == "templates":
+            return _handle_templates(args)
+
         else:
             print(f"Error: Unknown command '{args.command}'", file=sys.stderr)
             parser.print_help()
@@ -278,6 +337,106 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 130
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def _handle_show_spec(args) -> int:
+    """Handle show-spec command."""
+    from skill_seekers.core.skill_spec import SkillSpec
+    
+    spec_path = Path(args.spec_file)
+    if not spec_path.exists():
+        print(f"Error: Spec file not found: {spec_path}", file=sys.stderr)
+        return 1
+    
+    spec = SkillSpec.load(spec_path)
+    print(spec.to_markdown())
+    return 0
+
+
+def _handle_apply_spec(args) -> int:
+    """Handle apply-spec command."""
+    from skill_seekers.core.skill_spec import SkillSpec
+    from skill_seekers.cli.unified_skill_builder import UnifiedSkillBuilder
+    
+    spec_path = Path(args.spec_file)
+    if not spec_path.exists():
+        print(f"Error: Spec file not found: {spec_path}", file=sys.stderr)
+        return 1
+    
+    spec = SkillSpec.load(spec_path)
+    
+    # Check if spec is approved
+    if spec.meta.status not in ("approved", "pending"):
+        print(f"Warning: Spec status is '{spec.meta.status}', applying anyway...", file=sys.stderr)
+    
+    # Create minimal config for builder
+    config = {
+        "name": spec.name,
+        "description": spec.description,
+        "sources": [],
+    }
+    
+    builder = UnifiedSkillBuilder(
+        config=config,
+        scraped_data={},
+        skill_spec=spec,
+    )
+    output_path = builder.build_from_spec()
+    print(f"✅ Skill built: {output_path}")
+    return 0
+
+
+def _handle_reject_spec(args) -> int:
+    """Handle reject-spec command."""
+    from skill_seekers.core.skill_spec import SkillSpec
+    from skill_seekers.cli.spec_feedback import create_feedback, handle_spec_rejection
+    
+    spec_path = Path(args.spec_file)
+    if not spec_path.exists():
+        print(f"Error: Spec file not found: {spec_path}", file=sys.stderr)
+        return 1
+    
+    spec = SkillSpec.load(spec_path)
+    
+    feedback = create_feedback(
+        approved=False,
+        rejection_reason=args.reason,
+        additional_sources=args.add_sources or [],
+        remove_sections=args.remove_sections or [],
+        add_sections=args.add_sections or [],
+    )
+    
+    new_config = handle_spec_rejection(spec, feedback)
+    print("Re-scrape configuration:")
+    print(json.dumps(new_config, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _handle_templates(args) -> int:
+    """Handle templates command."""
+    from skill_seekers.cli import templates as tpl
+    
+    if args.templates_command == "list":
+        templates = tpl.list_templates()
+        print("Available templates:\n")
+        for template in templates:
+            name = template.get("name", "unknown")
+            desc = template.get("description", "No description")
+            print(f"  - {name}: {desc}")
+        return 0
+    
+    elif args.templates_command == "show":
+        try:
+            data = tpl.load_template(args.name)
+            print(json.dumps(data, ensure_ascii=False, indent=2))
+            return 0
+        except FileNotFoundError:
+            print(f"Error: Template not found: {args.name}", file=sys.stderr)
+            return 1
+    
+    else:
+        print("Usage: skill-seekers templates [list|show <name>]", file=sys.stderr)
         return 1
 
 

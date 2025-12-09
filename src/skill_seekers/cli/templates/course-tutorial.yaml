@@ -1,0 +1,56 @@
+name: course-tutorial
+description: 网课逐字稿、培训课程、教程视频转技能
+
+default_sections:
+  - title: "## 📝 课程摘要"
+    purpose: 2-3段课程概述，核心主题和价值
+    expected_content:
+      - 课程背景
+      - 核心主题
+      - 学习价值
+    priority: required
+  
+  - title: "## 🎯 关键要点"
+    purpose: 5-10个核心概念列表，关键知识点
+    expected_content:
+      - 核心概念列表
+      - 关键知识点
+    priority: required
+  
+  - title: "## 💡 核心概念详解"
+    purpose: 最重要的3-5个概念详细解释
+    expected_content:
+      - 概念定义
+      - 详细解释
+      - 应用场景
+    priority: required
+  
+  - title: "## 📋 实践练习"
+    purpose: 3道练习题，巩固知识
+    expected_content:
+      - 练习题目
+      - 参考答案
+      - 解题思路
+    priority: required
+  
+  - title: "## 🔗 延伸学习"
+    purpose: 2-3个进一步学习方向
+    expected_content:
+      - 推荐资源
+      - 进阶话题
+    priority: optional
+
+default_references:
+  - filename: concepts.md
+    purpose: 详细概念解释和背景知识
+    max_words: 15000
+  - filename: exercises.md
+    purpose: 补充练习题和解答
+    max_words: 8000
+
+default_scripts: []
+
+default_assets: []
+
+scripts_expected: false
+assets_expected: false

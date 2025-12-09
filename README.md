@@ -72,6 +72,14 @@ Skill Seeker is an automated tool that transforms documentation websites, GitHub
 - ✅ **Single Source of Truth** - One skill showing both intent (docs) and reality (code)
 - ✅ **Backward Compatible** - Legacy single-source configs still work
 
+### 📋 Spec-Driven Skill Generation (**NEW - v2.2.0**)
+- ✅ **Spec-First Workflow** - Review and approve skill structure before generation
+- ✅ **5 Skill Templates** - technical-guide, workflow-skill, course-tutorial, brand-enterprise, tool-utility
+- ✅ **User Feedback Loop** - Reject specs and trigger re-scrape with focused hints
+- ✅ **Full Output Control** - SkillSpec controls SKILL.md, references/, scripts/, assets/
+- ✅ **JSON/YAML Support** - Save and load specs in your preferred format
+- ✅ **CLI Commands** - `show-spec`, `apply-spec`, `reject-spec`, `templates`
+
 ### 🤖 AI & Enhancement
 - ✅ **AI-Powered Enhancement** - Transforms basic templates into comprehensive guides
 - ✅ **No API Costs** - FREE local enhancement using Claude Code Max
@@ -318,6 +326,45 @@ def move_local_x(delta: float, snap: bool = False) -> None
 - `configs/fastapi_unified.json` - FastAPI docs + GitHub repo
 
 **Full Guide:** See [docs/UNIFIED_SCRAPING.md](docs/UNIFIED_SCRAPING.md) for complete documentation.
+
+### Spec-Driven Skill Generation (**NEW - v2.2.0**)
+
+**The Problem:** Generated skills can be unpredictable. You don't know what sections or files will be created until after generation completes.
+
+**The Solution:** Generate a SkillSpec first, review it, request changes if needed, then apply it to create the final skill.
+
+```bash
+# Step 1: List available templates
+skill-seekers templates list
+
+# Step 2: Generate spec with template (saves to output/myskill/spec.yaml)
+skill-seekers scrape --config configs/react.json --spec-first --template technical-guide
+
+# Step 3: Review the generated spec
+skill-seekers show-spec output/react/spec.yaml
+
+# Step 4a: If satisfied, apply the spec
+skill-seekers apply-spec output/react/spec.yaml
+
+# Step 4b: If changes needed, reject and regenerate
+skill-seekers reject-spec output/react/spec.yaml \
+    --reason "Missing authentication section" \
+    --add-sections "Authentication" "Security Best Practices" \
+    --add-sources "https://react.dev/security"
+```
+
+**Available Templates:**
+- `technical-guide` - SDK/framework documentation (default)
+- `workflow-skill` - Meta-skills that teach how to create things
+- `course-tutorial` - Online course/tutorial conversion
+- `brand-enterprise` - Company branding and style guides
+- `tool-utility` - Tool integration and testing
+
+**Benefits:**
+- ✅ Preview before generation - Know exactly what you'll get
+- ✅ Iterative refinement - Reject and regenerate with focused hints
+- ✅ Full output control - Spec defines sections, references, scripts, assets
+- ✅ Reproducible builds - Save specs as YAML/JSON for reuse
 
 ## How It Works
 

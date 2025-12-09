@@ -1,0 +1,50 @@
+name: technical-guide
+description: 技术开发指南、SDK文档、框架教程
+
+default_sections:
+  - title: "## Overview"
+    purpose: 概述技术核心价值与适用场景
+    expected_content:
+      - 技术简介
+      - 核心特性
+      - 适用场景
+    priority: required
+  
+  - title: "# Process"
+    purpose: 分阶段的实施流程
+    priority: required
+    subsections:
+      - title: "## Phase 1: Research and Planning"
+        purpose: 研究目标技术、确定需求和规划方案
+        priority: required
+      - title: "## Phase 2: Implementation"
+        purpose: 具体实现步骤和代码示例
+        priority: required
+      - title: "## Phase 3: Review and Test"
+        purpose: 代码审查、测试和质量保证
+        priority: required
+  
+  - title: "# Reference Files"
+    purpose: 汇总参考文档和附加资源
+    priority: required
+
+default_references:
+  - filename: best_practices.md
+    purpose: 核心指南和最佳实践
+    max_words: 10000
+  - filename: examples.md
+    purpose: 完整的工作示例
+    max_words: 8000
+
+default_scripts:
+  - filename: validate.py
+    purpose: 验证实现是否符合规范
+    language: python
+  - filename: setup.sh
+    purpose: 环境设置脚本
+    language: bash
+
+default_assets: []
+
+scripts_expected: true
+assets_expected: false

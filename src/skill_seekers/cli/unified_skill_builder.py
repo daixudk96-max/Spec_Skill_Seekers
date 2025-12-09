@@ -16,7 +16,10 @@ import os
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from skill_seekers.core.skill_spec import SkillSpec
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,7 +31,8 @@ class UnifiedSkillBuilder:
     """
 
     def __init__(self, config: Dict, scraped_data: Dict,
-                 merged_data: Optional[Dict] = None, conflicts: Optional[List] = None):
+                 merged_data: Optional[Dict] = None, conflicts: Optional[List] = None,
+                 skill_spec: Optional["SkillSpec"] = None):
         """
         Initialize skill builder.
 
@@ -37,11 +41,13 @@ class UnifiedSkillBuilder:
             scraped_data: Dict of scraped data by source type
             merged_data: Merged API data (if conflicts were resolved)
             conflicts: List of detected conflicts
+            skill_spec: Optional SkillSpec to guide output generation
         """
         self.config = config
         self.scraped_data = scraped_data
         self.merged_data = merged_data
         self.conflicts = conflicts or []
+        self.skill_spec = skill_spec  # NEW: SkillSpec for spec-driven generation
 
         self.name = config['name']
         self.description = config['description']
@@ -57,17 +63,251 @@ class UnifiedSkillBuilder:
         """Build complete skill structure."""
         logger.info(f"Building unified skill: {self.name}")
 
-        # Generate main SKILL.md
-        self._generate_skill_md()
+        # Use spec-driven generation if SkillSpec is provided
+        if self.skill_spec is not None:
+            return self.build_from_spec()
 
-        # Generate reference files by source
+        # Legacy mode: generate from scraped data directly
+        self._generate_skill_md()
         self._generate_references()
 
-        # Generate conflicts report (if any)
         if self.conflicts:
             self._generate_conflicts_report()
 
         logger.info(f"✅ Unified skill built: {self.skill_dir}/")
+
+    def build_from_spec(self):
+        """
+        Build skill structure guided by SkillSpec.
+        
+        Uses the SkillSpec to control:
+        - SKILL.md sections and structure
+        - Which references to generate
+        - Which scripts and assets to include
+        
+        Returns:
+            Path to the generated skill directory
+        """
+        if self.skill_spec is None:
+            raise ValueError("SkillSpec is required for build_from_spec()")
+        
+        logger.info(f"Building spec-driven skill: {self.skill_spec.name}")
+        
+        # Update skill_dir to match spec name
+        self.skill_dir = f"output/{self.skill_spec.name}"
+        os.makedirs(self.skill_dir, exist_ok=True)
+        os.makedirs(f"{self.skill_dir}/references", exist_ok=True)
+        os.makedirs(f"{self.skill_dir}/scripts", exist_ok=True)
+        os.makedirs(f"{self.skill_dir}/assets", exist_ok=True)
+        
+        # Generate SKILL.md from spec
+        self._generate_skill_md_from_spec()
+        
+        # Generate references based on spec
+        self._generate_references_from_spec()
+        
+        # Generate script stubs based on spec
+        self._generate_scripts_from_spec()
+        
+        # Generate asset placeholders based on spec
+        self._generate_assets_from_spec()
+        
+        # Still generate conflicts report if there are conflicts
+        if self.conflicts:
+            self._generate_conflicts_report()
+        
+        # Mark spec as applied
+        self.skill_spec.meta.mark_applied()
+        
+        # Save the applied spec alongside the skill
+        spec_path = os.path.join(self.skill_dir, 'SPEC.yaml')
+        self.skill_spec.save(Path(spec_path))
+        
+        logger.info(f"✅ Spec-driven skill built: {self.skill_dir}/")
+        return Path(self.skill_dir)
+
+    def _generate_skill_md_from_spec(self):
+        """Generate SKILL.md from SkillSpec."""
+        skill_path = os.path.join(self.skill_dir, 'SKILL.md')
+        spec = self.skill_spec
+        
+        # YAML frontmatter
+        content = f"""---
+name: {spec.name}
+description: {spec.description[:1024]}
+"""
+        if spec.license:
+            content += f"license: {spec.license}\n"
+        if spec.allowed_tools:
+            content += f"allowed_tools: [{', '.join(spec.allowed_tools)}]\n"
+        if spec.metadata:
+            content += "metadata:\n"
+            for key, value in spec.metadata.items():
+                content += f"  {key}: {value}\n"
+        content += "---\n\n"
+        
+        # Main title
+        content += f"# {spec.name.replace('-', ' ').title()}\n\n"
+        content += f"{spec.description}\n\n"
+        
+        # Generate sections from spec
+        for section in spec.sections:
+            content += self._format_section_from_spec(section)
+        
+        # Guidelines section
+        if spec.guidelines:
+            content += "## Guidelines\n\n"
+            for guideline in spec.guidelines:
+                content += f"- {guideline}\n"
+            content += "\n"
+        
+        # Examples section (if any)
+        if spec.examples:
+            content += "## Examples\n\n"
+            for example in spec.examples:
+                content += f"### {example.title}\n\n"
+                if example.description:
+                    content += f"{example.description}\n\n"
+                if example.code_language:
+                    content += f"```{example.code_language}\n# Example code placeholder\n```\n\n"
+        
+        # Reference links
+        if spec.references:
+            content += "## Reference Files\n\n"
+            for ref in spec.references:
+                content += f"- [`{ref.filename}`](references/{ref.filename}): {ref.purpose}\n"
+            content += "\n"
+        
+        # Scripts links
+        if spec.scripts:
+            content += "## Scripts\n\n"
+            for script in spec.scripts:
+                content += f"- [`{script.filename}`](scripts/{script.filename}): {script.purpose}\n"
+            content += "\n"
+        
+        content += "---\n\n"
+        content += "*Generated by Skill Seeker's spec-driven workflow*\n"
+        
+        with open(skill_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        logger.info("Created SKILL.md from spec")
+
+    def _format_section_from_spec(self, section) -> str:
+        """Format a SectionSpec into markdown content."""
+        content = f"{section.title}\n\n"
+        
+        # Add purpose as a comment for content generation
+        if section.purpose:
+            content += f"*{section.purpose}*\n\n"
+        
+        # Expected content hints
+        if section.expected_content:
+            content += "Expected content:\n"
+            for item in section.expected_content:
+                content += f"- {item}\n"
+            content += "\n"
+        
+        # Note about priority
+        if section.priority == "optional":
+            content += "*[Optional section]*\n\n"
+        
+        # Recursively add subsections
+        for subsection in section.subsections:
+            content += self._format_section_from_spec(subsection)
+        
+        return content
+
+    def _generate_references_from_spec(self):
+        """Generate reference files based on SkillSpec."""
+        refs_dir = os.path.join(self.skill_dir, 'references')
+        
+        for ref_spec in self.skill_spec.references:
+            ref_path = os.path.join(refs_dir, ref_spec.filename)
+            
+            # Create directory if filename contains path
+            os.makedirs(os.path.dirname(ref_path) or refs_dir, exist_ok=True)
+            
+            with open(ref_path, 'w', encoding='utf-8') as f:
+                f.write(f"# {ref_spec.filename}\n\n")
+                f.write(f"*Purpose: {ref_spec.purpose}*\n\n")
+                
+                if ref_spec.content_sources:
+                    f.write("## Sources\n\n")
+                    for source in ref_spec.content_sources:
+                        f.write(f"- {source}\n")
+                    f.write("\n")
+                
+                f.write("<!-- TODO: Populate with content from scraped data -->\n")
+        
+        logger.info(f"Created {len(self.skill_spec.references)} reference files")
+
+    def _generate_scripts_from_spec(self):
+        """Generate script stubs based on SkillSpec."""
+        scripts_dir = os.path.join(self.skill_dir, 'scripts')
+        
+        for script_spec in self.skill_spec.scripts:
+            script_path = os.path.join(scripts_dir, script_spec.filename)
+            
+            with open(script_path, 'w', encoding='utf-8') as f:
+                if script_spec.language == 'python':
+                    f.write(f'''#!/usr/bin/env python3
+"""
+{script_spec.purpose}
+
+Generated stub - implement as needed.
+"""
+
+import argparse
+
+
+def main():
+    parser = argparse.ArgumentParser(description="{script_spec.purpose}")
+    # Add arguments here
+    args = parser.parse_args()
+    
+    # TODO: Implement script logic
+    print("Script stub - implement me!")
+
+
+if __name__ == "__main__":
+    main()
+''')
+                elif script_spec.language == 'bash':
+                    f.write(f'''#!/bin/bash
+# {script_spec.purpose}
+# Generated stub - implement as needed.
+
+set -e
+
+echo "Script stub - implement me!"
+''')
+                else:
+                    f.write(f"# {script_spec.purpose}\n# TODO: Implement\n")
+        
+        logger.info(f"Created {len(self.skill_spec.scripts)} script stubs")
+
+    def _generate_assets_from_spec(self):
+        """Generate asset placeholders based on SkillSpec."""
+        assets_dir = os.path.join(self.skill_dir, 'assets')
+        
+        for asset_spec in self.skill_spec.assets:
+            # Skip folder-type assets
+            if asset_spec.filename.endswith('/'):
+                os.makedirs(os.path.join(assets_dir, asset_spec.filename), exist_ok=True)
+                continue
+            
+            asset_path = os.path.join(assets_dir, asset_spec.filename)
+            os.makedirs(os.path.dirname(asset_path) or assets_dir, exist_ok=True)
+            
+            with open(asset_path, 'w', encoding='utf-8') as f:
+                f.write(f"# Asset: {asset_spec.filename}\n")
+                f.write(f"# Type: {asset_spec.asset_type}\n")
+                if asset_spec.source:
+                    f.write(f"# Source: {asset_spec.source}\n")
+                f.write("# TODO: Replace with actual asset content\n")
+        
+        logger.info(f"Created {len(self.skill_spec.assets)} asset placeholders")
 
     def _generate_skill_md(self):
         """Generate main SKILL.md file."""

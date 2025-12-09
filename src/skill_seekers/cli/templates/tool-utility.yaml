@@ -1,0 +1,60 @@
+name: tool-utility
+description: 工具集成/测试，强调快速验证与最佳实践
+
+default_sections:
+  - title: "# Quick Start"
+    purpose: 最短路径完成工具集成或运行示例
+    expected_content:
+      - 安装步骤
+      - 快速示例
+      - 预期输出
+    priority: required
+  
+  - title: "## Decision Tree"
+    purpose: 针对常见场景给出分支决策
+    expected_content:
+      - 场景分类
+      - 决策路径
+    priority: optional
+  
+  - title: "## Examples"
+    purpose: 展示典型用法与输入输出
+    expected_content:
+      - 基础示例
+      - 进阶示例
+      - 边界情况
+    priority: required
+  
+  - title: "## Common Pitfalls"
+    purpose: 列出常见错误与规避方式
+    expected_content:
+      - 常见错误
+      - 解决方案
+    priority: optional
+  
+  - title: "## Best Practices"
+    purpose: 推荐配置、模式与性能提示
+    expected_content:
+      - 推荐配置
+      - 性能优化
+      - 安全建议
+    priority: required
+  
+  - title: "## Reference Files"
+    purpose: 汇总命令、脚本或附录资料
+    priority: optional
+
+default_references: []
+
+default_scripts:
+  - filename: with_server.py
+    purpose: 启动本地测试服务器并运行示例
+    language: python
+  - filename: smoke_tests.sh
+    purpose: 执行关键路径 smoke test
+    language: bash
+
+default_assets: []
+
+scripts_expected: true
+assets_expected: false

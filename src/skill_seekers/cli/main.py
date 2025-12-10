@@ -92,6 +92,8 @@ For more information: https://github.com/yusufkaraaslan/Skill_Seekers
     scrape_parser.add_argument("--spec-first", action="store_true", help="Enable spec-first workflow")
     scrape_parser.add_argument("--template", choices=["technical-guide", "workflow-skill", "course-tutorial", "brand-enterprise", "tool-utility"], help="Template type for spec generation")
     scrape_parser.add_argument("--auto-approve", action="store_true", help="Auto-approve spec without review")
+    scrape_parser.add_argument("--output-raw", action="store_true", 
+                               help="Output scraped_data.json for AI assistant consumption")
 
     # === github subcommand ===
     github_parser = subparsers.add_parser(
@@ -204,6 +206,24 @@ For more information: https://github.com/yusufkaraaslan/Skill_Seekers
     templates_list_parser = templates_subparsers.add_parser("list", help="List all templates")
     templates_show_parser = templates_subparsers.add_parser("show", help="Show template details")
     templates_show_parser.add_argument("name", help="Template name")
+
+    # === init subcommand (NEW) ===
+    init_parser = subparsers.add_parser(
+        "init",
+        help="Initialize slash command workflows for AI tools",
+        description="Generate workflow files for AI coding assistants (Antigravity, Claude, Cursor, etc.)"
+    )
+    init_parser.add_argument("--tools", help="Comma-separated tool IDs or 'all' (e.g., 'antigravity,claude,cursor')")
+    init_parser.add_argument("--path", help="Target project directory (default: current directory)")
+
+    # === update subcommand (NEW) ===
+    update_parser = subparsers.add_parser(
+        "update",
+        help="Update existing slash command workflows",
+        description="Update existing workflow files with latest templates"
+    )
+    update_parser.add_argument("--tools", help="Comma-separated tool IDs or 'all'")
+    update_parser.add_argument("--path", help="Target project directory (default: current directory)")
 
     return parser
 
@@ -329,6 +349,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         elif args.command == "templates":
             return _handle_templates(args)
 
+        elif args.command == "init":
+            return _handle_init(args)
+
+        elif args.command == "update":
+            return _handle_update(args)
+
         else:
             print(f"Error: Unknown command '{args.command}'", file=sys.stderr)
             parser.print_help()
@@ -448,5 +474,18 @@ def _handle_templates(args) -> int:
         return 1
 
 
+def _handle_init(args) -> int:
+    """Handle init command."""
+    from skill_seekers.cli.configurators import handle_init_command
+    return handle_init_command(args.tools, args.path)
+
+
+def _handle_update(args) -> int:
+    """Handle update command."""
+    from skill_seekers.cli.configurators import handle_update_command
+    return handle_update_command(args.tools, args.path)
+
+
 if __name__ == "__main__":
     sys.exit(main())
+

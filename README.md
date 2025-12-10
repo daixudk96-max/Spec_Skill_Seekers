@@ -366,6 +366,33 @@ skill-seekers reject-spec output/react/spec.yaml \
 - ✅ Full output control - Spec defines sections, references, scripts, assets
 - ✅ Reproducible builds - Save specs as YAML/JSON for reuse
 
+### 🤖 Slash Command System for AI Assistants (**NEW - v2.3.0**)
+
+Generate workflow files for AI coding assistants (Antigravity, Claude Code, Cursor, Codex, etc.) to use `/skill-seekers-proposal`, `/skill-seekers-apply`, `/skill-seekers-archive` commands.
+
+```bash
+# Initialize slash commands for your project
+skill-seekers init --tools antigravity,claude,cursor
+
+# Or install for all supported tools
+skill-seekers init --tools all
+
+# Update existing workflows with latest templates
+skill-seekers update
+```
+
+**Supported AI Tools (20+):**
+- Antigravity, Claude Code, Cursor, Codex, Cline, Windsurf
+- VSCode Copilot, JetBrains AI, Amazon Q Developer
+- Gemini CLI, Goose, RooCode, and more
+
+**Workflow Commands:**
+- `/skill-seekers-proposal` - Generate SkillSpec with AI-assisted content enhancement
+- `/skill-seekers-apply` - Build skill from approved spec
+- `/skill-seekers-archive` - Package and upload completed skill
+
+**Key Design:** AI assistants read raw scraped data via `--output-raw` and perform content enhancement locally, eliminating external LLM API costs.
+
 ## How It Works
 
 ```mermaid

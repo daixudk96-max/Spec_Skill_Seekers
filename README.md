@@ -394,6 +394,45 @@ skill-seekers update
 
 **Key Design:** AI assistants read raw scraped data via `--output-raw` and perform content enhancement locally, eliminating external LLM API costs.
 
+### 🎯 Transcript Semantic Segmentation (**NEW**)
+
+For transcript-based skills, the AI assistant can create structured segment summaries before spec generation:
+
+**Workflow:**
+```
+transcript → scraped_data.json → [AI creates] segmented_summary.json → enhanced spec.yaml
+```
+
+**Features:**
+- ✅ **Semantic Segmentation** - Split by marker words ('好', '下一个', '首先', etc.)
+- ✅ **Hierarchical Structure** - Main segments with subsegments (1.1, 1.2, etc.)
+- ✅ **Comprehensive Summaries** - Full and brief summaries for each segment
+- ✅ **Homophone Correction** - Fix common transcription errors
+- ✅ **Backward Compatible** - Works without segmented data
+
+**Usage in `/skill-seekers-proposal` workflow:**
+1. Generate `scraped_data.json` from transcript
+2. AI analyzes and creates `segmented_summary.json`
+3. Generate enhanced `spec.yaml` using both files
+
+**API Usage:**
+```python
+from skill_seekers.cli.spec_generator import SpecGenerator
+
+# Load segmented summary
+summary = SpecGenerator.load_segmented_summary(Path("output/myskill/segmented_summary.json"))
+
+# Create generator with segmented summary
+gen = SpecGenerator.from_transcript_scraper(
+    scraped_data,
+    name="my-course",
+    segmented_summary=summary,
+)
+
+# Generate enhanced spec
+spec = gen.generate()
+```
+
 ## How It Works
 
 ```mermaid

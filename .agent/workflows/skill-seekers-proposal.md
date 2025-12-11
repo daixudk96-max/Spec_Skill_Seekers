@@ -38,6 +38,74 @@ skill-seekers scrape --spec-first --output-raw \
 - 识别 **缺口**：标记需要补充的内容领域
 - 评估 **风险与假设**：记录数据质量问题或不确定性
 
+### 3.5 分段总结（仅 transcript 类型）
+
+> **适用条件**：当来源类型为 `transcript` 时执行
+
+**目的**：对转录文本进行语义分段和结构化总结
+
+**执行步骤**：
+
+1. **读取原始 transcript**
+   - 阅读 `scraped_data.json` 中的原始内容
+   - 记录文件名和时间戳信息
+
+2. **语义分段**
+   - 根据标志词分段：'好'、'下一个'、'第一个'、'首先'、'其次'、'最后'
+   - **注意**：不按篇幅分段，只在明确标志处分段
+
+3. **子分段识别**
+   - 在主分段内识别话题转换
+   - 创建层次结构 (id: "1.1", "1.2")
+
+4. **撰写全面总结**
+   - `summary_full`：详尽准确，让未读原文者能完全理解
+   - `summary_brief`：2-3 句核心内容
+   - `key_points`：列表形式的重点
+   - `examples_simplified`：保留并简化例子
+   - `reason`：解释分段原因
+
+5. **同音字修正**
+   - 根据上下文推断正确用词
+   - 记录在 `homophone_notes`
+
+6. **输出 segmented_summary.json**
+```json
+{
+  "version": "1.0",
+  "source_file": "原文件名.txt",
+  "total_segments": 3,
+  "segments": [
+    {
+      "id": "1",
+      "timestamp": "00:00 - 08:05",
+      "marker": "好",
+      "reason": "分段原因",
+      "summary_full": "详细总结...",
+      "summary_brief": "简短摘要",
+      "key_points": ["要点1"],
+      "examples_simplified": ["例子"],
+      "homophone_notes": ["修正说明"],
+      "subsegments": [{"id": "1.1", "topic": "子话题", "summary": "子总结"}]
+    }
+  ],
+  "metadata": {"generated_by": "AI_assistant", "generated_at": "ISO时间"}
+}
+```
+
+### 3.6 综合生成 Spec（使用分段总结 + 原文）
+
+> **适用条件**：已完成 Step 3.5，存在 `segmented_summary.json`
+
+**输入**：
+- `scraped_data.json`（原始数据，用于验证准确性）
+- `segmented_summary.json`（分段总结）
+
+**处理**：
+- 对照原文验证总结准确性
+- 将分段结构融入 `spec.yaml` 的 lessons
+- 使用分段总结增强 sections 内容
+
 ### 4. 生成/修订 spec.yaml
 基于分析结果增强 spec.yaml：
 - 写入增强后的 **摘要**（synopsis）
@@ -47,6 +115,7 @@ skill-seekers scrape --spec-first --output-raw \
 
 ### 5. 交付物
 - `scraped_data.json`（原始数据）
+- `segmented_summary.json`（分段总结，仅 transcript 类型）
 - `spec.yaml`（草稿规格）
 - 未决问题清单
 

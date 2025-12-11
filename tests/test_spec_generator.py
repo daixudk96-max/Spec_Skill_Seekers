@@ -255,6 +255,122 @@ class TestExport:
             assert (Path(tmpdir) / "spec.yaml").exists()
 
 
+# =============================================================================
+# Segmented Summary Tests
+# =============================================================================
+
+class TestSegmentedSummary:
+    """Test segmented summary support for transcript workflows."""
+
+    @pytest.fixture
+    def sample_segmented_summary(self):
+        """Sample segmented summary data."""
+        return {
+            "version": "1.0",
+            "source_file": "第八章_原文.txt",
+            "total_segments": 2,
+            "segments": [
+                {
+                    "id": "1",
+                    "timestamp": "00:00 - 05:00",
+                    "marker": "好",
+                    "reason": "讲者使用'好'开始新话题",
+                    "summary_full": "详细总结内容...",
+                    "summary_brief": "简短摘要",
+                    "key_points": ["要点1", "要点2"],
+                    "examples_simplified": ["例子1"],
+                    "homophone_notes": [],
+                    "subsegments": [],
+                },
+                {
+                    "id": "2",
+                    "timestamp": "05:00 - 10:00",
+                    "marker": "下一个",
+                    "reason": "话题转换标志",
+                    "summary_full": "第二段详细总结...",
+                    "summary_brief": "第二段摘要",
+                    "key_points": ["要点3"],
+                    "examples_simplified": [],
+                    "homophone_notes": ["的/得"],
+                    "subsegments": [
+                        {"id": "2.1", "topic": "子话题", "summary": "子总结"}
+                    ],
+                },
+            ],
+            "metadata": {
+                "generated_by": "AI_assistant",
+                "generated_at": "2024-01-01T00:00:00Z",
+            },
+        }
+
+    def test_load_segmented_summary_valid(self, sample_segmented_summary):
+        """load_segmented_summary() loads valid JSON file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "segmented_summary.json"
+            import json
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(sample_segmented_summary, f)
+            
+            result = SpecGenerator.load_segmented_summary(path)
+            
+            assert result["version"] == "1.0"
+            assert result["total_segments"] == 2
+            assert len(result["segments"]) == 2
+
+    def test_load_segmented_summary_missing_file(self):
+        """load_segmented_summary() returns empty dict for missing file."""
+        result = SpecGenerator.load_segmented_summary(Path("/nonexistent/path.json"))
+        assert result == {}
+
+    def test_load_segmented_summary_invalid_json(self):
+        """load_segmented_summary() returns empty dict for invalid JSON."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "invalid.json"
+            path.write_text("not valid json {{{", encoding="utf-8")
+            
+            result = SpecGenerator.load_segmented_summary(path)
+            assert result == {}
+
+    def test_from_transcript_with_segmented_summary(
+        self, transcript_data, sample_segmented_summary
+    ):
+        """from_transcript_scraper() accepts segmented_summary parameter."""
+        gen = SpecGenerator.from_transcript_scraper(
+            transcript_data,
+            name="test-transcript",
+            segmented_summary=sample_segmented_summary,
+        )
+        
+        assert gen.segmented_summary == sample_segmented_summary
+        assert gen.template_type == "course-tutorial"
+
+    def test_generate_includes_segments(
+        self, transcript_data, sample_segmented_summary
+    ):
+        """generate() merges segmented summary into spec data."""
+        gen = SpecGenerator.from_transcript_scraper(
+            transcript_data,
+            name="test-segments",
+            segmented_summary=sample_segmented_summary,
+        )
+        
+        spec = gen.generate()
+        
+        # Spec should be valid
+        assert spec.name == "test-segments"
+        spec.validate()
+
+    def test_generate_without_segmented_summary_backward_compatible(
+        self, transcript_data
+    ):
+        """generate() works without segmented summary (backward compatibility)."""
+        gen = SpecGenerator.from_transcript_scraper(transcript_data, name="no-segments")
+        spec = gen.generate()
+        
+        assert spec.name == "no-segments"
+        spec.validate()
+
+
 # Run tests
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

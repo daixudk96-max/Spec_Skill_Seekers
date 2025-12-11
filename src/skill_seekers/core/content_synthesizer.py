@@ -92,7 +92,15 @@ class ContentSynthesizer:
         return bool(os.environ.get("ANTHROPIC_API_KEY"))
     
     def _get_source_text(self) -> str:
-        """Extract raw text from source_config."""
+        """Extract raw text from source_config.
+        
+        Supports multiple source formats:
+        1. lessons.lessons.content (legacy string format)
+        2. lessons.lessons[] (array of lesson objects with segments)
+        3. lessons.content (direct content string)
+        4. transcript (raw transcript text)
+        5. content (direct content field)
+        """
         # Try common source structures
         if "lessons" in self.source_config:
             lessons_data = self.source_config["lessons"]
@@ -100,8 +108,14 @@ class ContentSynthesizer:
                 # Check for nested 'lessons' key (from spec.yaml format)
                 if "lessons" in lessons_data:
                     inner = lessons_data["lessons"]
+                    # Legacy format: {lessons: {lessons: {content: "..."}}}
                     if isinstance(inner, dict) and "content" in inner:
                         return inner["content"]
+                    # Array format: {lessons: {lessons: [{title, summary, segments}]}}
+                    if isinstance(inner, list):
+                        formatted = self._format_lessons_list(inner)
+                        if formatted:
+                            return formatted
                 # Direct content
                 if "content" in lessons_data:
                     return lessons_data["content"]
@@ -112,15 +126,68 @@ class ContentSynthesizer:
         if "content" in self.source_config:
             return self.source_config["content"]
         
-        # Fallback: serialize entire source_config as string
+        # Last resort: stringify non-empty source_config
         if self.source_config:
-            try:
-                import json
-                return json.dumps(self.source_config, ensure_ascii=False, indent=2)
-            except (TypeError, ValueError):
-                return str(self.source_config)
+            return str(self.source_config)
         
-        return "{}"  # Return empty JSON object string for empty source
+        return ""  # Return empty string for empty source
+    
+    def _format_lessons_list(self, lessons: List[Any]) -> str:
+        """Format a list of lesson objects into readable markdown text.
+        
+        Priority order for extracting content from each lesson:
+        1. segments[].summary_full (most detailed)
+        2. summary + key_points (structured fallback)
+        
+        Args:
+            lessons: List of lesson dictionaries with title, summary, segments, etc.
+            
+        Returns:
+            Formatted markdown text suitable for LLM processing or display.
+        """
+        lesson_blocks: List[str] = []
+        
+        for lesson in lessons:
+            if not isinstance(lesson, dict):
+                continue
+            
+            parts: List[str] = []
+            
+            # Add lesson title as header
+            title = lesson.get("title")
+            if title:
+                parts.append(f"### {title}")
+            
+            # Try extracting from segments first (priority: summary_full)
+            segments = lesson.get("segments")
+            segment_summaries: List[str] = []
+            
+            if isinstance(segments, list):
+                for segment in segments:
+                    if isinstance(segment, dict):
+                        summary_full = segment.get("summary_full")
+                        if summary_full:
+                            segment_summaries.append(str(summary_full).strip())
+            
+            if segment_summaries:
+                # Use detailed segment summaries
+                parts.append("\n\n".join(segment_summaries))
+            else:
+                # Fallback: use lesson-level summary and key_points
+                summary = lesson.get("summary")
+                if summary:
+                    parts.append(str(summary).strip())
+                
+                key_points = lesson.get("key_points")
+                if isinstance(key_points, list) and key_points:
+                    bullet_points = [f"- {kp}" for kp in key_points if kp]
+                    if bullet_points:
+                        parts.append("\n".join(bullet_points))
+            
+            if parts:
+                lesson_blocks.append("\n\n".join(parts))
+        
+        return "\n\n---\n\n".join(lesson_blocks)
     
     def synthesize_section_content(self, section: "SectionSpec") -> str:  # noqa: F821
         """

@@ -1,0 +1,49 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-9.0.2, pluggy-1.6.0 -- C:\Python311\python.exe
+cachedir: .pytest_cache
+rootdir: C:\open skills\Skill_Seekers
+configfile: pyproject.toml
+plugins: anyio-4.12.0
+collecting ... collected 17 items
+
+tests/test_content_synthesizer.py::TestContentSynthesizerInit::test_init_without_api_key PASSED [  5%]
+tests/test_content_synthesizer.py::TestContentSynthesizerInit::test_init_with_llm_disabled PASSED [ 11%]
+tests/test_content_synthesizer.py::TestContentSynthesizerInit::test_init_empty_source_config PASSED [ 17%]
+tests/test_content_synthesizer.py::TestSourceTextExtraction::test_extract_from_nested_lessons PASSED [ 23%]
+tests/test_content_synthesizer.py::TestSourceTextExtraction::test_extract_from_flat_content PASSED [ 29%]
+tests/test_content_synthesizer.py::TestSourceTextExtraction::test_extract_from_transcript PASSED [ 35%]
+tests/test_content_synthesizer.py::TestSourceTextExtraction::test_extract_from_lessons_array PASSED [ 41%]
+tests/test_content_synthesizer.py::TestSourceTextExtraction::test_extract_from_segmented_summary PASSED [ 47%]
+tests/test_content_synthesizer.py::TestFallbackContentGeneration::test_summary_section_fallback PASSED [ 52%]
+tests/test_content_synthesizer.py::TestFallbackContentGeneration::test_key_points_fallback PASSED [ 58%]
+tests/test_content_synthesizer.py::TestFallbackContentGeneration::test_exercise_section_placeholder PASSED [ 64%]
+tests/test_content_synthesizer.py::TestFallbackContentGeneration::test_empty_source_placeholder PASSED [ 70%]
+tests/test_content_synthesizer.py::TestReferenceContentGeneration::test_reference_fallback_content PASSED [ 76%]
+tests/test_content_synthesizer.py::TestReferenceContentGeneration::test_reference_empty_source PASSED [ 82%]
+tests/test_content_synthesizer.py::TestLLMContentGeneration::test_llm_generation_success FAILED [ 88%]
+tests/test_content_synthesizer.py::TestLLMContentGeneration::test_llm_generation_fallback_on_error FAILED [ 94%]
+tests/test_content_synthesizer.py::TestUnifiedSkillBuilderIntegration::test_builder_initializes_synthesizer PASSED [100%]
+
+================================== FAILURES ===================================
+____________ TestLLMContentGeneration.test_llm_generation_success _____________
+tests\test_content_synthesizer.py:297: in test_llm_generation_success
+    with patch("skill_seekers.core.content_synthesizer.anthropic") as mock_anthropic:
+C:\Python311\Lib\unittest\mock.py:1446: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+C:\Python311\Lib\unittest\mock.py:1419: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'skill_seekers.core.content_synthesizer' from 'C:\\open skills\\Skill_Seekers\\src\\skill_seekers\\core\\content_synthesizer.py'> does not have the attribute 'anthropic'
+_______ TestLLMContentGeneration.test_llm_generation_fallback_on_error ________
+tests\test_content_synthesizer.py:314: in test_llm_generation_fallback_on_error
+    with patch("skill_seekers.core.content_synthesizer.anthropic") as mock_anthropic:
+C:\Python311\Lib\unittest\mock.py:1446: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+C:\Python311\Lib\unittest\mock.py:1419: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'skill_seekers.core.content_synthesizer' from 'C:\\open skills\\Skill_Seekers\\src\\skill_seekers\\core\\content_synthesizer.py'> does not have the attribute 'anthropic'
+=========================== short test summary info ===========================
+FAILED tests/test_content_synthesizer.py::TestLLMContentGeneration::test_llm_generation_success - AttributeError: <module 'skill_seekers.core.content_synthesizer' from 'C:\\open skills\\Skill_Seekers\\src\\skill_seekers\\core\\content_synthesizer.py'> does not have the attribute 'anthropic'
+FAILED tests/test_content_synthesizer.py::TestLLMContentGeneration::test_llm_generation_fallback_on_error - AttributeError: <module 'skill_seekers.core.content_synthesizer' from 'C:\\open skills\\Skill_Seekers\\src\\skill_seekers\\core\\content_synthesizer.py'> does not have the attribute 'anthropic'
+======================== 2 failed, 15 passed in 0.44s =========================

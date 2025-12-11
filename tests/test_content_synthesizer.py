@@ -127,7 +127,7 @@ class TestContentSynthesizerInit:
     def test_init_empty_source_config(self, sample_spec):
         """Synthesizer handles empty source_config."""
         synth = ContentSynthesizer(sample_spec, {}, use_llm=False)
-        assert synth._get_source_text() == "{}"
+        assert synth._get_source_text() == ""
 
 
 # =============================================================================
@@ -155,6 +155,67 @@ class TestSourceTextExtraction:
         source = {"transcript": "这是转录文本"}
         synth = ContentSynthesizer(sample_spec, source, use_llm=False)
         assert synth._get_source_text() == "这是转录文本"
+    
+    def test_extract_from_lessons_array(self, sample_spec):
+        """Extract content from array-format lessons with summary and key_points."""
+        source = {
+            "lessons": {
+                "lessons": [
+                    {
+                        "title": "第一部分：测试课程",
+                        "summary": "这是课程摘要内容",
+                        "key_points": ["要点一", "要点二", "要点三"],
+                    },
+                    {
+                        "title": "第二部分：进阶内容",
+                        "summary": "这是进阶课程摘要",
+                        "key_points": ["进阶要点"],
+                    },
+                ]
+            }
+        }
+        synth = ContentSynthesizer(sample_spec, source, use_llm=False)
+        text = synth._get_source_text()
+        
+        # Should contain lesson titles, summaries, and key_points
+        assert "第一部分：测试课程" in text
+        assert "这是课程摘要内容" in text
+        assert "- 要点一" in text
+        assert "第二部分：进阶内容" in text
+        # Should NOT contain JSON syntax
+        assert '{"lessons"' not in text
+        assert '"title":' not in text
+    
+    def test_extract_from_segmented_summary(self, sample_spec):
+        """Extract content prioritizing segments.summary_full over lesson.summary."""
+        source = {
+            "lessons": {
+                "lessons": [
+                    {
+                        "title": "第一部分",
+                        "summary": "简短摘要（不应优先使用）",
+                        "segments": [
+                            {
+                                "id": "1",
+                                "summary_full": "这是详细的段落摘要内容，包含更多细节信息。",
+                            },
+                            {
+                                "id": "2",
+                                "summary_full": "第二段的详细摘要。",
+                            },
+                        ],
+                    },
+                ]
+            }
+        }
+        synth = ContentSynthesizer(sample_spec, source, use_llm=False)
+        text = synth._get_source_text()
+        
+        # Should contain segment summary_full (prioritized)
+        assert "详细的段落摘要内容" in text
+        assert "第二段的详细摘要" in text
+        # Should NOT contain the less-detailed lesson summary
+        assert "不应优先使用" not in text
 
 
 # =============================================================================

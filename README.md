@@ -123,6 +123,7 @@ skill-seekers scrape --config configs/react.json
 skill-seekers github --repo facebook/react
 skill-seekers enhance output/react/
 skill-seekers package output/react/
+skill-seekers install output/react/  # Install to Claude local skills
 ```
 
 **Time:** ~25 minutes | **Quality:** Production-ready | **Cost:** Free

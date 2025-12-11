@@ -13,6 +13,7 @@ Commands:
     pdf         Extract from PDF file
     unified     Multi-source scraping (docs + GitHub + PDF)
     enhance     AI-powered enhancement (local, no API key)
+    install     Install skill into Claude local skills directory
     package     Package skill into .zip file
     upload      Upload skill to Claude
     estimate    Estimate page count before scraping
@@ -136,6 +137,19 @@ For more information: https://github.com/yusufkaraaslan/Skill_Seekers
     )
     enhance_parser.add_argument("skill_directory", help="Skill directory path")
 
+    # === install subcommand ===
+    install_parser = subparsers.add_parser(
+        "install",
+        help="Install skill into Claude local skills directory",
+        description="Install a skill directory or .zip into Claude's local skills folder"
+    )
+    install_parser.add_argument("source", help="Skill directory or .zip file")
+    install_parser.add_argument("--target", help="Override Claude skills directory (default: auto-detect)")
+    install_conflicts = install_parser.add_mutually_exclusive_group()
+    install_conflicts.add_argument("--overwrite", action="store_true", help="Overwrite an existing skill")
+    install_conflicts.add_argument("--backup", action="store_true", help="Backup existing skill before installing")
+    install_parser.add_argument("--dry-run", action="store_true", help="Preview installation without changing files")
+
     # === package subcommand ===
     package_parser = subparsers.add_parser(
         "package",
@@ -145,6 +159,11 @@ For more information: https://github.com/yusufkaraaslan/Skill_Seekers
     package_parser.add_argument("skill_directory", help="Skill directory path")
     package_parser.add_argument("--no-open", action="store_true", help="Don't open output folder")
     package_parser.add_argument("--upload", action="store_true", help="Auto-upload after packaging")
+    package_parser.add_argument("--install", action="store_true", help="Install skill to Claude local directory after packaging")
+    package_parser.add_argument("--install-target", help="Override Claude skills directory for install")
+    package_install_conflicts = package_parser.add_mutually_exclusive_group()
+    package_install_conflicts.add_argument("--install-overwrite", action="store_true", help="Overwrite existing skill during installation")
+    package_install_conflicts.add_argument("--install-backup", action="store_true", help="Backup existing skill during installation")
 
     # === upload subcommand ===
     upload_parser = subparsers.add_parser(
@@ -314,6 +333,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             sys.argv = ["enhance_skill_local.py", args.skill_directory]
             return enhance_main() or 0
 
+        elif args.command == "install":
+            return _handle_install(args)
+
         elif args.command == "package":
             from skill_seekers.cli.package_skill import main as package_main
             sys.argv = ["package_skill.py", args.skill_directory]
@@ -321,6 +343,14 @@ def main(argv: Optional[List[str]] = None) -> int:
                 sys.argv.append("--no-open")
             if args.upload:
                 sys.argv.append("--upload")
+            if args.install:
+                sys.argv.append("--install")
+            if args.install_target:
+                sys.argv.extend(["--install-target", args.install_target])
+            if args.install_overwrite:
+                sys.argv.append("--install-overwrite")
+            if args.install_backup:
+                sys.argv.append("--install-backup")
             return package_main() or 0
 
         elif args.command == "upload":
@@ -484,6 +514,25 @@ def _handle_update(args) -> int:
     """Handle update command."""
     from skill_seekers.cli.configurators import handle_update_command
     return handle_update_command(args.tools, args.path)
+
+
+def _handle_install(args) -> int:
+    """Handle install command."""
+    from skill_seekers.cli.install_skill import install_skill
+    
+    target_dir = Path(args.target).expanduser() if args.target else None
+    success, installed_path = install_skill(
+        Path(args.source),
+        target_dir=target_dir,
+        overwrite=args.overwrite,
+        backup=args.backup,
+        dry_run=args.dry_run,
+    )
+    
+    if success and args.dry_run:
+        print(f"Dry run complete. Target would be: {installed_path}")
+    
+    return 0 if success else 1
 
 
 if __name__ == "__main__":

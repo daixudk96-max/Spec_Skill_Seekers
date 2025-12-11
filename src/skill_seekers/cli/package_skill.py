@@ -134,6 +134,9 @@ Examples:
   # Package and auto-upload to Claude
   skill-seekers package output/react/ --upload
 
+  # Package and install to Claude local skills
+  skill-seekers package output/react/ --install
+
   # Get help
   skill-seekers package --help
         """
@@ -162,6 +165,29 @@ Examples:
         help='Automatically upload to Claude after packaging (requires ANTHROPIC_API_KEY)'
     )
 
+    parser.add_argument(
+        '--install',
+        action='store_true',
+        help='Install the packaged skill into Claude local skills directory'
+    )
+
+    parser.add_argument(
+        '--install-target',
+        help='Override Claude skills directory for install'
+    )
+
+    install_conflict = parser.add_mutually_exclusive_group()
+    install_conflict.add_argument(
+        '--install-overwrite',
+        action='store_true',
+        help='Overwrite existing skill during installation'
+    )
+    install_conflict.add_argument(
+        '--install-backup',
+        action='store_true',
+        help='Backup existing skill during installation'
+    )
+
     args = parser.parse_args()
 
     success, zip_path = package_skill(
@@ -172,6 +198,30 @@ Examples:
 
     if not success:
         sys.exit(1)
+
+    # Install if requested (before upload)
+    install_success = True
+    if args.install:
+        try:
+            from install_skill import install_skill
+        except ImportError:
+            from skill_seekers.cli.install_skill import install_skill
+        
+        install_target = Path(args.install_target).expanduser() if args.install_target else None
+        install_success, installed_path = install_skill(
+            zip_path,
+            target_dir=install_target,
+            overwrite=args.install_overwrite,
+            backup=args.install_backup,
+            dry_run=False
+        )
+        if install_success:
+            print(f"\n📥 Installed to: {installed_path}")
+        else:
+            print("\n❌ Installation failed")
+            if args.upload:
+                print("   Skipping upload due to installation failure")
+            sys.exit(1)
 
     # Auto-upload if requested
     if args.upload:

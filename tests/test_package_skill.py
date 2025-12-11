@@ -181,6 +181,71 @@ class TestPackageSkillCLI(unittest.TestCase):
         except FileNotFoundError:
             self.skipTest("skill-seekers-package command not installed")
 
+    def test_cli_install_flag_in_help(self):
+        """Test that --install flag is available in help"""
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                ['skill-seekers', 'package', '--help'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
+            output = result.stdout + result.stderr
+            self.assertIn('--install', output)
+        except FileNotFoundError:
+            self.skipTest("skill-seekers command not installed")
+
+
+class TestPackageWithInstall(unittest.TestCase):
+    """Test package_skill.py with --install flag"""
+
+    def create_test_skill_directory(self, tmpdir):
+        """Helper to create a test skill directory structure"""
+        skill_dir = Path(tmpdir) / "test-skill"
+        skill_dir.mkdir()
+
+        # Create SKILL.md
+        (skill_dir / "SKILL.md").write_text("---\nname: test-skill\n---\n# Test Skill")
+
+        # Create references directory
+        refs_dir = skill_dir / "references"
+        refs_dir.mkdir()
+        (refs_dir / "index.md").write_text("# Index")
+
+        # Create scripts and assets directories (empty)
+        (skill_dir / "scripts").mkdir()
+        (skill_dir / "assets").mkdir()
+
+        return skill_dir
+
+    def test_package_with_install_creates_zip_and_installs(self):
+        """Test that package --install both creates zip and installs"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skill_dir = self.create_test_skill_directory(tmpdir)
+            install_dir = Path(tmpdir) / "skills"
+
+            # Package and install
+            from skill_seekers.cli.package_skill import package_skill
+
+            success, zip_path = package_skill(
+                skill_dir, open_folder_after=False, skip_quality_check=True
+            )
+            self.assertTrue(success)
+            self.assertTrue(zip_path.exists())
+
+            # Now install from the created zip
+            from skill_seekers.cli.install_skill import install_skill
+
+            install_success, installed_path = install_skill(
+                zip_path, target_dir=install_dir
+            )
+            self.assertTrue(install_success)
+            self.assertTrue(installed_path.exists())
+            self.assertTrue((installed_path / "SKILL.md").exists())
+
 
 if __name__ == '__main__':
     unittest.main()

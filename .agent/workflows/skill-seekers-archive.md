@@ -25,6 +25,10 @@ skill-seekers package <skill_dir>
 ```
 - 如需自动上传：添加 `--upload` 标志。
 - 如不想打开输出文件夹：添加 `--no-open` 标志。
+- 如需安装到本地 Claude skills 目录：添加 `--install` 标志。
+  - 覆盖已存在的技能：`--install-overwrite`
+  - 备份已存在的技能：`--install-backup`
+  - 指定安装目录：`--install-target <path>`
 
 ### 3. 记录产物
 打包完成后，记录以下信息：

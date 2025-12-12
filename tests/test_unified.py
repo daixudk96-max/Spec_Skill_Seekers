@@ -546,6 +546,95 @@ def test_skill_builder_merged_apis():
 
 
 # ===========================
+# Output Dir Parameter Tests
+# ===========================
+
+def test_skill_builder_custom_output_dir():
+    """Test UnifiedSkillBuilder uses custom output_dir when provided."""
+    config = {
+        'name': 'test_skill',
+        'description': 'Test skill description',
+        'sources': []
+    }
+    scraped_data = {}
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        custom_dir = os.path.join(tmpdir, 'custom_output')
+        
+        builder = UnifiedSkillBuilder(
+            config=config,
+            scraped_data=scraped_data,
+            output_dir=custom_dir,
+        )
+        
+        # Verify skill_dir uses custom path
+        assert builder.skill_dir == custom_dir
+        assert builder._custom_output_dir is True
+        
+        # Verify directories were created at custom path
+        assert os.path.exists(custom_dir)
+        assert os.path.exists(os.path.join(custom_dir, 'references'))
+        assert os.path.exists(os.path.join(custom_dir, 'scripts'))
+        assert os.path.exists(os.path.join(custom_dir, 'assets'))
+
+
+def test_skill_builder_default_output_dir():
+    """Test UnifiedSkillBuilder uses default output/{name} when output_dir is None."""
+    config = {
+        'name': 'test_default_skill',
+        'description': 'Test skill description',
+        'sources': []
+    }
+    scraped_data = {}
+
+    builder = UnifiedSkillBuilder(
+        config=config,
+        scraped_data=scraped_data,
+        output_dir=None,  # Explicit None
+    )
+    
+    # Verify skill_dir uses default path
+    assert builder.skill_dir == 'output/test_default_skill'
+    assert builder._custom_output_dir is False
+
+
+def test_skill_builder_build_from_spec_respects_custom_output_dir():
+    """Test build_from_spec does not override custom output_dir."""
+    from skill_seekers.core.skill_spec import SkillSpec
+    
+    config = {
+        'name': 'config_name',
+        'description': 'Test',
+        'sources': []
+    }
+    scraped_data = {}
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        custom_dir = os.path.join(tmpdir, 'my_custom_path')
+        
+        # Create a minimal spec with a DIFFERENT name
+        spec = SkillSpec(
+            name='spec_name',  # Different from config name
+            description='Spec description',
+            sections=[],
+        )
+        
+        builder = UnifiedSkillBuilder(
+            config=config,
+            scraped_data=scraped_data,
+            skill_spec=spec,
+            output_dir=custom_dir,
+            use_llm=False,
+        )
+        
+        output_path = builder.build_from_spec()
+        
+        # Should use custom_dir, NOT output/spec_name
+        assert str(output_path) == custom_dir
+        assert os.path.exists(os.path.join(custom_dir, 'SKILL.md'))
+
+
+# ===========================
 # Integration Tests
 # ===========================
 

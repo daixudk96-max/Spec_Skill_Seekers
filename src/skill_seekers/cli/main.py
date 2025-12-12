@@ -445,6 +445,7 @@ def _handle_apply_spec(args) -> int:
         scraped_data={},
         skill_spec=spec,
         use_llm=use_llm,
+        output_dir=getattr(args, 'output_dir', None),
     )
     output_path = builder.build_from_spec()
     print(f"✅ Skill built: {output_path}")

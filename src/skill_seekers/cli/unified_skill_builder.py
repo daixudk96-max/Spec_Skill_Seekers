@@ -34,7 +34,8 @@ class UnifiedSkillBuilder:
     def __init__(self, config: Dict, scraped_data: Dict,
                  merged_data: Optional[Dict] = None, conflicts: Optional[List] = None,
                  skill_spec: Optional["SkillSpec"] = None,
-                 use_llm: bool = True):
+                 use_llm: bool = True,
+                 output_dir: Optional[str] = None):
         """
         Initialize skill builder.
 
@@ -45,6 +46,7 @@ class UnifiedSkillBuilder:
             conflicts: List of detected conflicts
             skill_spec: Optional SkillSpec to guide output generation
             use_llm: Enable LLM content generation (requires ANTHROPIC_API_KEY)
+            output_dir: Override output directory (default: output/<name>)
         """
         self.config = config
         self.scraped_data = scraped_data
@@ -53,10 +55,11 @@ class UnifiedSkillBuilder:
         self.skill_spec = skill_spec
         self.use_llm = use_llm
         self.content_synthesizer: Optional["ContentSynthesizer"] = None
+        self._custom_output_dir = output_dir is not None
 
         self.name = config['name']
         self.description = config['description']
-        self.skill_dir = f"output/{self.name}"
+        self.skill_dir = output_dir if output_dir else f"output/{self.name}"
 
         # Create directories
         os.makedirs(self.skill_dir, exist_ok=True)
@@ -110,8 +113,9 @@ class UnifiedSkillBuilder:
         else:
             logger.warning("No source_config in spec, using placeholder content")
         
-        # Update skill_dir to match spec name
-        self.skill_dir = f"output/{self.skill_spec.name}"
+        # Update skill_dir to match spec name only when no custom output_dir was provided
+        if not self._custom_output_dir:
+            self.skill_dir = f"output/{self.skill_spec.name}"
         os.makedirs(self.skill_dir, exist_ok=True)
         os.makedirs(f"{self.skill_dir}/references", exist_ok=True)
         os.makedirs(f"{self.skill_dir}/scripts", exist_ok=True)

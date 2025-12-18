@@ -55,3 +55,21 @@ htmlcov/
 
 # Build artifacts
 .build/
+
+# Test output files (contains local paths)
+test_full_output.txt
+test_output.txt
+test_result.txt
+test_synth.txt
+validation_log.txt
+validation_log_2.txt
+apply_output.txt
+
+# Personal/private content
+16.*.docx
+16.*.txt
+需要参考的项目/
+
+# Demo files
+demo_conflicts.py
+generate_live_streaming_spec.py

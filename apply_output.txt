@@ -1,1 +1,0 @@
-Error: 'gbk' codec can't encode character '\u2139' in position 0: illegal multibyte sequence

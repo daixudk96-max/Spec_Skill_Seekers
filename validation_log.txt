@@ -1,8 +1,0 @@
-Change 'integrate-spec-driven-workflow' has issues
-鉁?[ERROR] skill-generation/spec.md: ADDED "Spec-First Generation" must contain SHALL or MUST
-鉁?[ERROR] skill-generation/spec.md: ADDED "Interactive Review & Feedback" must contain SHALL or MUST
-鉁?[ERROR] skill-generation/spec.md: ADDED "Strictly Typed Templates" must contain SHALL or MUST
-Next steps:
-  - Ensure change has deltas in specs/: use headers ## ADDED/MODIFIED/REMOVED/RENAMED Requirements
-  - Each requirement MUST include at least one #### Scenario: block
-  - Debug parsed deltas: openspec change show <id> --json --deltas-only
